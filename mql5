@@ -1,0 +1,89 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                               Sinyal Biru Signal Indicator |
+//|                                                   forexroboteasy.com |
+//|                                                 Forex Robot Easy Team |
+//+------------------------------------------------------------------+
+#property copyright 'Forex Robot Easy Team'
+#property link      'forexroboteasy.com'
+
+// Indicator input parameters
+input int ADX_Period = 14; // ADX period
+input int Pivot_Period = 5; // Pivot period
+input int SupportResistance_Period = 10; // Support/Resistance period
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Add indicator buffers and set colors
+    SetIndexBuffer(0, Buffer1);
+    SetIndexStyle(0, DRAW_ARROW);
+    SetIndexArrow(0, SYMBOL_ARROWUP);
+    SetIndexBuffer(1, Buffer2);
+    SetIndexStyle(1, DRAW_ARROW);
+    SetIndexArrow(1, SYMBOL_ARROWDOWN);
+
+    // Set indicator name
+    IndicatorShortName('Sinyal Biru Signal Indicator');
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+    // Calculate Gain ADX
+    double ADXBuffer[];
+    ArraySetAsSeries(ADXBuffer, true);
+    CopyBuffer(IndicatorCreate(NULL, 0, 'GainADX', ADX_Period), 0, 0, rates_total, ADXBuffer);
+
+    // Calculate Pivot
+    double PivotBuffer[];
+    ArraySetAsSeries(PivotBuffer, true);
+    CopyBuffer(IndicatorCreate(NULL, 0, 'Pivot', Pivot_Period), 0, 0, rates_total, PivotBuffer);
+
+    // Calculate Support/Resistance
+    double SupportBuffer[];
+    double ResistanceBuffer[];
+    ArraySetAsSeries(SupportBuffer, true);
+    ArraySetAsSeries(ResistanceBuffer, true);
+    CopyBuffer(IndicatorCreate(NULL, 0, 'SupportResistance', SupportResistance_Period), 0, 0, rates_total, SupportBuffer);
+    CopyBuffer(IndicatorCreate(NULL, 1, 'SupportResistance', SupportResistance_Period), 0, 0, rates_total, ResistanceBuffer);
+
+    // Iterate through the bars
+    for (int i = prev_calculated; i < rates_total; i++)
+    {
+        // Check for buy signal
+        if (ADXBuffer[i] > 30 && close[i] > PivotBuffer[i] && close[i] > SupportBuffer[i])
+        {
+            Buffer1[i] = low[i]; // Green signal
+            Buffer2[i] = EMPTY_VALUE;
+        }
+        // Check for sell signal
+        else if (ADXBuffer[i] > 30 && close[i] < PivotBuffer[i] && close[i] < ResistanceBuffer[i])
+        {
+            Buffer1[i] = EMPTY_VALUE;
+            Buffer2[i] = high[i]; // Red signal
+        }
+        else
+        {
+            Buffer1[i] = EMPTY_VALUE;
+            Buffer2[i] = EMPTY_VALUE;
+        }
+    }
+
+    return(rates_total);
+}
